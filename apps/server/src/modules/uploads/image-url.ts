@@ -2,7 +2,7 @@ import { env } from "../../config/env";
 
 export function buildProductImageUrl(imageKey: string | null): string | null {
   if (!imageKey) return null;
-  return `${env.PUBLIC_API_URL}/api/v1/uploads/images/${encodeURIComponent(imageKey)}`;
+  return `${env.PUBLIC_API_URL}/api/v1/uploads/images/${imageKey}`;
 }
 
 export function validateImageKey(imageKey: string): boolean {

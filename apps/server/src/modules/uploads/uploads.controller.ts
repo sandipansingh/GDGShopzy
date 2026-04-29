@@ -42,6 +42,8 @@ export async function viewImage(req: Request, res: Response): Promise<void> {
   res.setHeader("Content-Type", contentType);
   res.setHeader("Cache-Control", "public, max-age=86400");
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
 
   stream.pipe(res);
 }

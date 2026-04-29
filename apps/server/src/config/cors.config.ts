@@ -5,12 +5,8 @@ const allowedOrigins = env.CORS_ORIGINS.split(",").map((o) => o.trim());
 
 export const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    if (env.NODE_ENV === "development" && !origin) {
-      return callback(null, true);
-    }
-
     if (!origin) {
-      return callback(new Error("CORS: No origin header provided"));
+      return callback(null, true);
     }
 
     if (allowedOrigins.includes(origin)) {
@@ -22,4 +18,11 @@ export const corsOptions: CorsOptions = {
   credentials: env.CORS_CREDENTIALS,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+export const publicCorsOptions: CorsOptions = {
+  origin: "*",
+  credentials: false,
+  methods: ["GET", "OPTIONS"],
+  allowedHeaders: ["Content-Type"],
 };
