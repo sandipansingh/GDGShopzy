@@ -13,6 +13,10 @@ export interface AuthUser {
   name: string;
   email: string;
   role: UserRole;
+  sellerProfile?: {
+    id: string;
+    storeName: string;
+  } | null;
 }
 
 export interface AuthResponse {

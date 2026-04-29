@@ -88,7 +88,7 @@ export const ToastProvider = ({ children }: ToastProviderProps) => {
       <div
         aria-atomic="true"
         aria-live="polite"
-        className="pointer-events-none fixed right-4 top-4 z-50 flex w-full max-w-sm flex-col gap-3"
+        className="pointer-events-none fixed right-4 top-20 z-50 flex w-full max-w-sm flex-col gap-3"
       >
         {toasts.map((toast) => (
           <div

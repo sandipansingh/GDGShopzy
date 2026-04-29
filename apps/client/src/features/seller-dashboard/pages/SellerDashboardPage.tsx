@@ -9,7 +9,7 @@ import { StatusBadge } from "../../../components/shared/StatusBadge";
 import { Card } from "../../../components/ui/Card";
 import { Badge } from "../../../components/ui/Badge";
 import { getErrorMessage } from "../../../lib/api-error";
-import { formatCurrency, formatDate } from "../../../lib/format";
+import { formatCurrency, formatDate, formatMoneyParts } from "../../../lib/format";
 import { ROUTES } from "../../../lib/routes";
 import { DashboardSection } from "../components/DashboardSection";
 
@@ -82,7 +82,19 @@ export const SellerDashboardPage = () => {
         </Card>
         <Card>
           <div className="text-caption text-ink-muted-80 mb-sm">Total Revenue</div>
-          <div className="text-display-md text-ink">{formatCurrency(stats.totalRevenue)}</div>
+          <div className="text-display-md text-ink pr-2">
+            {(() => {
+              const { whole, decimal } = formatMoneyParts(stats.totalRevenue);
+              return (
+                <span className="inline-block">
+                  <span className="inline">{whole}</span>
+                  <span className="inline text-[0.45em] align-baseline text-ink-muted-80">
+                    {decimal}
+                  </span>
+                </span>
+              );
+            })()}
+          </div>
         </Card>
       </div>
 

@@ -25,7 +25,9 @@ export const SellerLayout = () => {
       <aside className="w-64 bg-surface-black text-body-on-dark flex flex-col">
         <div className="p-lg border-b border-ink-muted-80">
           <h1 className="text-tagline">Seller Portal</h1>
-          <p className="text-caption text-body-muted mt-xs">{user?.name}</p>
+          <p className="text-caption text-body-muted mt-xs">
+            {user?.sellerProfile?.storeName || user?.name}
+          </p>
         </div>
         <nav className="flex-1 p-lg">
           <ul className="space-y-sm">

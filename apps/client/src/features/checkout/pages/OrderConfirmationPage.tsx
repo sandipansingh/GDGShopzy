@@ -41,28 +41,38 @@ export const OrderConfirmationPage = () => {
       </div>
 
       <div className="space-y-lg">
-        {orders.map((order) => (
-          <div key={order.id} className="bg-canvas rounded-lg border border-hairline p-lg">
-            <div className="flex items-center justify-between mb-md">
-              <div>
-                <p className="text-caption text-ink-muted-80">Order ID</p>
-                <p className="text-body-strong text-ink">{order.id}</p>
-              </div>
-              <Badge variant="info">{order.status}</Badge>
-            </div>
+        {orders.map((order) => {
+          const itemCount = order.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
-            <div className="border-t border-hairline pt-md">
-              <div className="flex justify-between text-body text-ink mb-sm">
-                <span>Items</span>
-                <span>{order.items?.length || 0}</span>
+          return (
+            <div key={order.id} className="bg-canvas rounded-lg border border-hairline p-lg">
+              <div className="flex items-center justify-between mb-md">
+                <div className="flex-1 min-w-0">
+                  <p className="text-caption text-ink-muted-80">Order ID</p>
+                  <p className="text-body-strong text-ink font-mono truncate">{order.id}</p>
+                </div>
+                <Badge variant="info">{order.status}</Badge>
               </div>
-              <div className="flex justify-between text-lead text-ink">
-                <span>Total</span>
-                <span>{formatCurrency(order.totalAmount)}</span>
+
+              <div className="border-t border-hairline pt-md space-y-sm">
+                <div className="flex justify-between text-body text-ink">
+                  <span>Items</span>
+                  <span className="font-medium">
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </span>
+                </div>
+                <div className="flex justify-between text-body text-ink">
+                  <span>Payment</span>
+                  <span className="font-medium uppercase">{order.paymentMethod}</span>
+                </div>
+                <div className="flex justify-between text-lead text-ink font-semibold pt-sm border-t border-hairline">
+                  <span>Total</span>
+                  <span>{formatCurrency(order.totalAmount)}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex gap-md mt-xl">

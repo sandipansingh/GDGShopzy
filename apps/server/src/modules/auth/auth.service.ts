@@ -150,7 +150,19 @@ export async function logout(rawToken: string): Promise<void> {
 export async function getMe(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true, role: true, createdAt: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      sellerProfile: {
+        select: {
+          id: true,
+          storeName: true,
+        },
+      },
+    },
   });
   if (!user) {
     throw new ApiError({ statusCode: 404, message: "User not found", code: ErrorCode.NOT_FOUND });

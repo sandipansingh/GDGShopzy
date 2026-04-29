@@ -21,39 +21,35 @@ export const CartPage = () => {
   const [updating, setUpdating] = useState<string | null>(null);
 
   const fetchCart = async () => {
-    setLoading(true);
-    setError("");
-    const data = await cartApi.getCart();
-    setCart(data);
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError("");
+      const data = await cartApi.getCart();
+      setCart(data);
+    } catch (err) {
+      const message = getErrorMessage(err);
+      setError(message);
+      toast.error(message, "Cart unavailable");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const loadCart = async () => {
-      try {
-        await fetchCart();
-      } catch (err) {
-        const message = getErrorMessage(err);
-        setError(message);
-        setLoading(false);
-        toast.error(message, "Cart unavailable");
-      }
-    };
-
-    void loadCart();
-  }, [toast]);
+    void fetchCart();
+  }, []);
 
   const handleUpdateQuantity = async (itemId: string, quantity: number) => {
+    if (quantity < 1) return;
+
     try {
       setUpdating(itemId);
       await cartApi.updateItem(itemId, quantity);
       await fetchCart();
-      toast.success("Your cart was updated.", "Cart updated");
+      toast.success("Cart updated successfully", "Cart updated");
     } catch (err) {
       const message = getErrorMessage(err);
-      setError(message);
-      setLoading(false);
-      toast.error(message, "Cart update failed");
+      toast.error(message, "Update failed");
     } finally {
       setUpdating(null);
     }
@@ -64,29 +60,26 @@ export const CartPage = () => {
       setUpdating(itemId);
       await cartApi.removeItem(itemId);
       await fetchCart();
-      toast.success("The item was removed from your cart.", "Cart updated");
+      toast.success("Item removed from cart", "Cart updated");
     } catch (err) {
       const message = getErrorMessage(err);
-      setError(message);
-      setLoading(false);
-      toast.error(message, "Cart update failed");
+      toast.error(message, "Remove failed");
     } finally {
       setUpdating(null);
     }
   };
 
   const handleClearCart = async () => {
-    if (!window.confirm("Are you sure you want to clear your cart?")) return;
+    if (!window.confirm("Remove all items from your cart?")) return;
+
     try {
       setLoading(true);
       await cartApi.clearCart();
       await fetchCart();
-      toast.success("Your cart is now empty.", "Cart cleared");
+      toast.success("Cart cleared successfully", "Cart cleared");
     } catch (err) {
       const message = getErrorMessage(err);
-      setError(message);
-      setLoading(false);
-      toast.error(message, "Cart update failed");
+      toast.error(message, "Clear failed");
     } finally {
       setLoading(false);
     }

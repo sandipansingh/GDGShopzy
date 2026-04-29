@@ -4,7 +4,7 @@ import { ErrorCode } from "../../constants/error-codes";
 import type { AddCartItemInput, UpdateCartItemInput } from "./cart.schema";
 
 async function getOrCreateCart(buyerId: string) {
-  return prisma.cart.upsert({
+  const cart = await prisma.cart.upsert({
     where: { buyerId },
     update: {},
     create: { buyerId },
@@ -16,6 +16,19 @@ async function getOrCreateCart(buyerId: string) {
       },
     },
   });
+
+  const itemsWithLineTotal = cart.items.map((item) => ({
+    ...item,
+    lineTotal: Number(item.product.price) * item.quantity,
+  }));
+
+  const totalAmount = itemsWithLineTotal.reduce((sum, item) => sum + item.lineTotal, 0);
+
+  return {
+    ...cart,
+    items: itemsWithLineTotal,
+    totalAmount,
+  };
 }
 
 export async function getCart(buyerId: string) {

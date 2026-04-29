@@ -134,5 +134,23 @@ export async function placeOrder(buyerId: string, input: CheckoutInput) {
     logger.error("[Checkout] Failed to send order emails:", err);
   });
 
-  return createdOrders;
+  const fullOrders = await prisma.order.findMany({
+    where: { id: { in: createdOrders.map((o) => o.id) } },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+    },
+  });
+
+  return fullOrders.map((order) => ({
+    ...order,
+    totalAmount: Number(order.totalAmount),
+    items: order.items.map((item) => ({
+      ...item,
+      unitPrice: Number(item.unitPrice),
+    })),
+  }));
 }

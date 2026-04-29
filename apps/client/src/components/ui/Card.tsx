@@ -11,7 +11,7 @@ export const Card = ({ variant = "default", className = "", children, ...props }
   };
 
   return (
-    <div className={`p-6 md:p-8 ${variantStyles[variant]} ${className}`} {...props}>
+    <div className={`p-6 md:p-8 overflow-hidden ${variantStyles[variant]} ${className}`} {...props}>
       {children}
     </div>
   );
