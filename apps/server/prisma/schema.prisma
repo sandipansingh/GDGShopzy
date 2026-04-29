@@ -1,0 +1,225 @@
+generator client {
+  provider      = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums 
+
+enum UserRole {
+  BUYER
+  SELLER
+  EMPLOYEE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CARD
+  UPI
+  COD
+}
+
+// Models 
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sellerProfile      Seller?
+  employeeProfile    Employee?
+  cart               Cart?
+  buyerOrders        Order[]              @relation("BuyerOrders")
+  refreshTokens      RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@map("users")
+}
+
+model Seller {
+  id        String @id @default(cuid())
+  ownerId   String @unique
+  storeName String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  employees Employee[]
+  products  Product[]
+  orders    Order[]          @relation("SellerOrders")
+  invites   EmployeeInvite[]
+
+  @@map("sellers")
+}
+
+model Employee {
+  id       String @id @default(cuid())
+  userId   String @unique
+  sellerId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sellerId])
+  @@map("employees")
+}
+
+model EmployeeInvite {
+  id       String    @id @default(cuid())
+  email    String
+  token    String    @unique
+  sellerId String
+  expiresAt DateTime
+  usedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@index([email])
+  @@map("employee_invites")
+}
+
+model Product {
+  id          String  @id @default(cuid())
+  sellerId    String
+  name        String
+  description String
+  category    String
+  price       Decimal @db.Decimal(10, 2)
+  stock       Int
+  imageUrl    String?
+  imageKey    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  seller     Seller      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@index([sellerId])
+  @@index([category])
+  @@index([name])
+  @@map("products")
+}
+
+model Cart {
+  id      String @id @default(cuid())
+  buyerId String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer User       @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  buyerId       String
+  sellerId      String
+  status        OrderStatus
+  totalAmount   Decimal       @db.Decimal(10, 2)
+  shippingName  String
+  shippingPhone String
+  shippingLine1 String
+  shippingLine2 String?
+  shippingCity  String
+  shippingState String
+  shippingZip   String
+  paymentMethod PaymentMethod
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer  User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller Seller      @relation("SellerOrders", fields: [sellerId], references: [id])
+  items  OrderItem[]
+
+  @@index([buyerId])
+  @@index([sellerId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@map("password_reset_tokens")
+}

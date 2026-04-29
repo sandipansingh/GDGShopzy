@@ -1,0 +1,9 @@
+node_modules
+dist
+build
+coverage
+*.generated.ts
+apps/server/node_modules
+apps/client/node_modules
+apps/server/prisma/generated
+package-lock.json

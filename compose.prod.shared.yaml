@@ -1,0 +1,116 @@
+# GDGShopzy Production with Shared Infrastructure
+# Connects to external/shared database, Redis, and MinIO
+# Run with: docker compose -f compose.prod.shared.yaml up -d
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: production
+    container_name: gdgshopzy-server-shared
+    command: >
+      sh -c "npx prisma generate && npx prisma db push --accept-data-loss && node dist/server.js"
+    environment:
+      NODE_ENV: production
+      SERVER_PORT: 4001
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_REQUIRED: ${REDIS_REQUIRED}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX}
+      REDIS_CACHE_TTL_SECONDS: ${REDIS_CACHE_TTL_SECONDS}
+      CACHE_TTL_PRODUCT_LIST_SECONDS: ${CACHE_TTL_PRODUCT_LIST_SECONDS}
+      CACHE_TTL_PRODUCT_DETAIL_SECONDS: ${CACHE_TTL_PRODUCT_DETAIL_SECONDS}
+      CACHE_TTL_SELLER_DASHBOARD_SECONDS: ${CACHE_TTL_SELLER_DASHBOARD_SECONDS}
+      CACHE_TTL_CATEGORY_LIST_SECONDS: ${CACHE_TTL_CATEGORY_LIST_SECONDS}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      CLIENT_URL: ${CLIENT_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS}
+      REQUEST_BODY_LIMIT: ${REQUEST_BODY_LIMIT}
+      TRUST_PROXY: ${TRUST_PROXY}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX}
+      UPLOAD_RATE_LIMIT_WINDOW_MS: ${UPLOAD_RATE_LIMIT_WINDOW_MS}
+      UPLOAD_RATE_LIMIT_MAX: ${UPLOAD_RATE_LIMIT_MAX}
+      PASSWORD_RESET_RATE_LIMIT_WINDOW_MS: ${PASSWORD_RESET_RATE_LIMIT_WINDOW_MS}
+      PASSWORD_RESET_RATE_LIMIT_MAX: ${PASSWORD_RESET_RATE_LIMIT_MAX}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO}
+      EMAIL_ENABLED: ${EMAIL_ENABLED}
+      EMAIL_ORDER_NOTIFICATIONS_ENABLED: ${EMAIL_ORDER_NOTIFICATIONS_ENABLED}
+      EMAIL_AUTH_NOTIFICATIONS_ENABLED: ${EMAIL_AUTH_NOTIFICATIONS_ENABLED}
+      EMAIL_EMPLOYEE_INVITES_ENABLED: ${EMAIL_EMPLOYEE_INVITES_ENABLED}
+      EMAIL_NOTIFY_EMPLOYEES_ON_NEW_ORDER: ${EMAIL_NOTIFY_EMPLOYEES_ON_NEW_ORDER}
+      EMAIL_ORDER_STATUS_SELLER_CONFIRMATION_ENABLED: ${EMAIL_ORDER_STATUS_SELLER_CONFIRMATION_ENABLED}
+      PASSWORD_RESET_TOKEN_EXPIRES_MINUTES: ${PASSWORD_RESET_TOKEN_EXPIRES_MINUTES}
+      EMPLOYEE_INVITE_EXPIRES_HOURS: ${EMPLOYEE_INVITE_EXPIRES_HOURS}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED}
+    ports:
+      - "${SERVER_PORT}:4001"
+    volumes:
+      - server_logs:/app/logs
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://127.0.0.1:4001/api/v1/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - default
+      - shared_infra
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      target: production
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    container_name: gdgshopzy-client-shared
+    ports:
+      - "${CLIENT_PORT}:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  server_logs:
+
+networks:
+  shared_infra:
+    external: true
+    name: ${SHARED_NETWORK}

@@ -1,0 +1,162 @@
+# GDGShopzy Development Docker Compose
+# Hot reload enabled for both client and server
+# Run with: docker compose -f compose.dev.yaml up
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: gdgshopzy-postgres-dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gdgshopzy-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: gdgshopzy-redis-dev
+    command: redis-server --appendonly yes
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gdgshopzy-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: gdgshopzy-minio-dev
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
+    ports:
+      - "${MINIO_PORT}:9000"
+      - "${MINIO_CONSOLE_PORT}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - gdgshopzy-network
+
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+      target: development
+    container_name: gdgshopzy-server-dev
+    command: >
+      sh -c "npx prisma generate --schema=apps/server/prisma/schema.prisma && npx prisma db push --accept-data-loss --schema=apps/server/prisma/schema.prisma && npm run dev --workspace=apps/server"
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      SERVER_PORT: 4001
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_USERNAME: ${REDIS_USERNAME}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_REQUIRED: ${REDIS_REQUIRED}
+      REDIS_KEY_PREFIX: ${REDIS_KEY_PREFIX}
+      REDIS_CACHE_TTL_SECONDS: ${REDIS_CACHE_TTL_SECONDS}
+      CACHE_TTL_PRODUCT_LIST_SECONDS: ${CACHE_TTL_PRODUCT_LIST_SECONDS}
+      CACHE_TTL_PRODUCT_DETAIL_SECONDS: ${CACHE_TTL_PRODUCT_DETAIL_SECONDS}
+      CACHE_TTL_SELLER_DASHBOARD_SECONDS: ${CACHE_TTL_SELLER_DASHBOARD_SECONDS}
+      CACHE_TTL_CATEGORY_LIST_SECONDS: ${CACHE_TTL_CATEGORY_LIST_SECONDS}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_PORT: ${MINIO_PORT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      CLIENT_URL: ${CLIENT_URL}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_ACCESS_EXPIRES_IN: ${JWT_ACCESS_EXPIRES_IN}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN}
+      REFRESH_COOKIE_NAME: ${REFRESH_COOKIE_NAME}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      CORS_CREDENTIALS: ${CORS_CREDENTIALS}
+      REQUEST_BODY_LIMIT: ${REQUEST_BODY_LIMIT}
+      TRUST_PROXY: ${TRUST_PROXY}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX}
+      UPLOAD_RATE_LIMIT_WINDOW_MS: ${UPLOAD_RATE_LIMIT_WINDOW_MS}
+      UPLOAD_RATE_LIMIT_MAX: ${UPLOAD_RATE_LIMIT_MAX}
+      PASSWORD_RESET_RATE_LIMIT_WINDOW_MS: ${PASSWORD_RESET_RATE_LIMIT_WINDOW_MS}
+      PASSWORD_RESET_RATE_LIMIT_MAX: ${PASSWORD_RESET_RATE_LIMIT_MAX}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO}
+      EMAIL_ENABLED: ${EMAIL_ENABLED}
+      EMAIL_ORDER_NOTIFICATIONS_ENABLED: ${EMAIL_ORDER_NOTIFICATIONS_ENABLED}
+      EMAIL_AUTH_NOTIFICATIONS_ENABLED: ${EMAIL_AUTH_NOTIFICATIONS_ENABLED}
+      EMAIL_EMPLOYEE_INVITES_ENABLED: ${EMAIL_EMPLOYEE_INVITES_ENABLED}
+      EMAIL_NOTIFY_EMPLOYEES_ON_NEW_ORDER: ${EMAIL_NOTIFY_EMPLOYEES_ON_NEW_ORDER}
+      EMAIL_ORDER_STATUS_SELLER_CONFIRMATION_ENABLED: ${EMAIL_ORDER_STATUS_SELLER_CONFIRMATION_ENABLED}
+      PASSWORD_RESET_TOKEN_EXPIRES_MINUTES: ${PASSWORD_RESET_TOKEN_EXPIRES_MINUTES}
+      EMPLOYEE_INVITE_EXPIRES_HOURS: ${EMPLOYEE_INVITE_EXPIRES_HOURS}
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED}
+    ports:
+      - "${SERVER_PORT}:4001"
+    volumes:
+      - ./apps/server:/app/apps/server
+      - /app/apps/server/node_modules
+      - server_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - gdgshopzy-network
+
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+      target: development
+    container_name: gdgshopzy-client-dev
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    ports:
+      - "${CLIENT_PORT}:5173"
+    volumes:
+      - ./apps/client:/app/apps/client
+      - /app/apps/client/node_modules
+    depends_on:
+      - server
+    networks:
+      - gdgshopzy-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  server_logs:
+
+networks:
+  gdgshopzy-network:
+    driver: bridge

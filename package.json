@@ -1,0 +1,48 @@
+{
+  "name": "gdgshopzy-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/client",
+    "apps/server"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:client": "npm run dev --workspace=apps/client",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "build": "npm run build --workspaces --if-present",
+    "build:client": "npm run build --workspace=apps/client",
+    "build:server": "npm run build --workspace=apps/server",
+    "lint": "eslint \"apps/**/*.{ts,tsx}\"",
+    "lint:fix": "eslint \"apps/**/*.{ts,tsx}\" --fix",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,json,css,md}\"",
+    "docker:dev": "docker compose -f compose.dev.yaml up",
+    "docker:dev:build": "docker compose -f compose.dev.yaml up --build",
+    "docker:dev:down": "docker compose -f compose.dev.yaml down",
+    "docker:prod": "docker compose -f compose.prod.yaml up -d",
+    "docker:prod:build": "docker compose -f compose.prod.yaml up -d --build",
+    "docker:prod:down": "docker compose -f compose.prod.yaml down",
+    "docker:prod:shared": "docker compose -f compose.prod.shared.yaml up -d",
+    "docker:prod:shared:build": "docker compose -f compose.prod.shared.yaml up -d --build",
+    "docker:prod:shared:down": "docker compose -f compose.prod.shared.yaml down",
+    "docker:down": "docker compose -f compose.dev.yaml down && docker compose -f compose.prod.yaml down && docker compose -f compose.prod.shared.yaml down",
+    "db:generate": "npm run prisma:generate --workspace=apps/server",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/server",
+    "db:studio": "npm run prisma:studio --workspace=apps/server"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "prettier": "^3.8.3",
+    "typescript-eslint": "^8.59.1"
+  }
+}
