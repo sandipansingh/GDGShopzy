@@ -93,7 +93,14 @@ export async function updateItem(buyerId: string, itemId: string, input: UpdateC
   }
 
   const product = await prisma.product.findUnique({ where: { id: item.productId } });
-  if (product && input.quantity > product.stock) {
+  if (!product) {
+    throw new ApiError({
+      statusCode: 404,
+      message: "Product not found",
+      code: ErrorCode.PRODUCT_NOT_FOUND,
+    });
+  }
+  if (input.quantity > product.stock) {
     throw new ApiError({
       statusCode: 400,
       message: `Only ${product.stock} units available`,

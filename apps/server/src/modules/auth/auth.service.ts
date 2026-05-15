@@ -35,26 +35,22 @@ import type {
 export async function registerBuyer(input: RegisterBuyerInput): Promise<RegistrationResult> {
   await checkEmailAvailability(input.email);
 
-  return createUserWithTokens(input, UserRole.BUYER, async (tx) => {
-    const user = await tx.user.findUnique({ where: { email: input.email } });
-    if (user) {
-      await tx.cart.create({ data: { buyerId: user.id } });
-    }
+  // Pass userId directly — no redundant findUnique inside the transaction
+  return createUserWithTokens(input, UserRole.BUYER, async (tx, userId) => {
+    await tx.cart.create({ data: { buyerId: userId } });
   });
 }
 
 export async function registerSeller(input: RegisterSellerInput): Promise<RegistrationResult> {
   await checkEmailAvailability(input.email);
 
-  return createUserWithTokens(input, UserRole.SELLER, async (tx) => {
-    const user = await tx.user.findUnique({ where: { email: input.email } });
-    if (user) {
-      await tx.seller.create({ data: { ownerId: user.id, storeName: input.storeName } });
-    }
+  return createUserWithTokens(input, UserRole.SELLER, async (tx, userId) => {
+    await tx.seller.create({ data: { ownerId: userId, storeName: input.storeName } });
   });
 }
 
 export async function registerEmployee(input: RegisterEmployeeInput): Promise<RegistrationResult> {
+  // Validate invite before checking email to give a clear error first
   const invite = await prisma.employeeInvite.findUnique({ where: { token: input.inviteToken } });
 
   if (!invite || invite.usedAt !== null) {
@@ -74,12 +70,22 @@ export async function registerEmployee(input: RegisterEmployeeInput): Promise<Re
 
   await checkEmailAvailability(input.email);
 
-  return createUserWithTokens(input, UserRole.EMPLOYEE, async (tx) => {
-    const user = await tx.user.findUnique({ where: { email: input.email } });
-    if (user) {
-      await tx.employee.create({ data: { userId: user.id, sellerId: invite.sellerId } });
-      await tx.employeeInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
+  // Invite consumption and user creation happen in the same transaction to
+  // prevent two concurrent registrations from consuming the same invite.
+  return createUserWithTokens(input, UserRole.EMPLOYEE, async (tx, userId) => {
+    // Re-check invite inside the transaction to close the TOCTOU window
+    const lockedInvite = await tx.employeeInvite.findFirst({
+      where: { id: invite.id, usedAt: null, expiresAt: { gt: new Date() } },
+    });
+    if (!lockedInvite) {
+      throw new ApiError({
+        statusCode: 400,
+        message: "Invite token is no longer valid",
+        code: ErrorCode.INVITE_INVALID,
+      });
     }
+    await tx.employee.create({ data: { userId, sellerId: invite.sellerId } });
+    await tx.employeeInvite.update({ where: { id: invite.id }, data: { usedAt: new Date() } });
   });
 }
 

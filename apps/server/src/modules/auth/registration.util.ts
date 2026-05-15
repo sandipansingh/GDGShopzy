@@ -29,15 +29,21 @@ export async function checkEmailAvailability(email: string): Promise<void> {
   }
 }
 
+// The tx type exposed by Prisma's interactive transactions
+type PrismaTx = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 export async function createUserWithTokens(
   input: BaseRegistrationInput,
   role: UserRole,
-  additionalData?: (
-    tx: Omit<
-      typeof prisma,
-      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
-    >,
-  ) => Promise<void>,
+  /**
+   * Optional callback that runs inside the same transaction as user creation.
+   * Receives both the transaction client AND the newly created user so callers
+   * don't need a redundant findUnique inside the transaction.
+   */
+  additionalData?: (tx: PrismaTx, userId: string) => Promise<void>,
 ): Promise<RegistrationResult> {
   const passwordHash = await hashPassword(input.password);
 
@@ -47,7 +53,8 @@ export async function createUserWithTokens(
     });
 
     if (additionalData) {
-      await additionalData(tx);
+      // Pass the created user's id directly — no extra findUnique needed
+      await additionalData(tx, created.id);
     }
 
     return created;

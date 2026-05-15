@@ -16,14 +16,6 @@ export async function uploadProductImage(
   file: Express.Multer.File,
   sellerId: string,
 ): Promise<UploadResult> {
-  if (!file) {
-    throw new ApiError({
-      statusCode: 400,
-      message: "Image file is required",
-      code: ErrorCode.VALIDATION_ERROR,
-    });
-  }
-
   const ext = path.extname(file.originalname).toLowerCase();
   const imageKey = `products/${sellerId}/${uuidv4()}${ext}`;
 
@@ -33,7 +25,8 @@ export async function uploadProductImage(
     "Content-Type": file.mimetype,
   });
 
-  const imageUrl = buildProductImageUrl(imageKey)!;
+  // imageKey is always a valid non-null key at this point
+  const imageUrl = buildProductImageUrl(imageKey) as string;
 
   return { imageUrl, imageKey };
 }
