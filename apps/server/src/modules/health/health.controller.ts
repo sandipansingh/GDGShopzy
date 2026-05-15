@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { sendSuccess } from "../../utils/api-response";
 import { prisma } from "../../db/prisma";
 import { isRedisReady, getRedisClient } from "../../cache/redis.client";
 import logger from "../../utils/logger";
@@ -18,7 +17,6 @@ interface HealthStatus {
 export async function healthCheck(_req: Request, res: Response): Promise<void> {
   const timestamp = new Date().toISOString();
 
-  // Check database
   let dbStatus: ServiceStatus = "ok";
   try {
     await prisma.$queryRaw`SELECT 1`;
@@ -27,7 +25,6 @@ export async function healthCheck(_req: Request, res: Response): Promise<void> {
     dbStatus = "unavailable";
   }
 
-  // Check Redis (optional — degraded if unavailable, not a hard failure)
   let cacheStatus: ServiceStatus = "ok";
   if (!isRedisReady()) {
     cacheStatus = "unavailable";
@@ -52,8 +49,6 @@ export async function healthCheck(_req: Request, res: Response): Promise<void> {
     },
   };
 
-  // Return 200 even when degraded so load balancers keep the instance alive.
-  // Use 503 only if the database (critical dependency) is completely down.
   const httpStatus = dbStatus === "unavailable" ? 503 : 200;
   res.status(httpStatus).json({ success: true, data: body });
 }

@@ -25,7 +25,6 @@ export async function uploadProductImage(
     "Content-Type": file.mimetype,
   });
 
-  // imageKey is always a valid non-null key at this point
   const imageUrl = buildProductImageUrl(imageKey) as string;
 
   return { imageUrl, imageKey };

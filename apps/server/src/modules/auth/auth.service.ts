@@ -35,7 +35,6 @@ import type {
 export async function registerBuyer(input: RegisterBuyerInput): Promise<RegistrationResult> {
   await checkEmailAvailability(input.email);
 
-  // Pass userId directly — no redundant findUnique inside the transaction
   return createUserWithTokens(input, UserRole.BUYER, async (tx, userId) => {
     await tx.cart.create({ data: { buyerId: userId } });
   });
@@ -50,7 +49,6 @@ export async function registerSeller(input: RegisterSellerInput): Promise<Regist
 }
 
 export async function registerEmployee(input: RegisterEmployeeInput): Promise<RegistrationResult> {
-  // Validate invite before checking email to give a clear error first
   const invite = await prisma.employeeInvite.findUnique({ where: { token: input.inviteToken } });
 
   if (!invite || invite.usedAt !== null) {
@@ -70,10 +68,7 @@ export async function registerEmployee(input: RegisterEmployeeInput): Promise<Re
 
   await checkEmailAvailability(input.email);
 
-  // Invite consumption and user creation happen in the same transaction to
-  // prevent two concurrent registrations from consuming the same invite.
   return createUserWithTokens(input, UserRole.EMPLOYEE, async (tx, userId) => {
-    // Re-check invite inside the transaction to close the TOCTOU window
     const lockedInvite = await tx.employeeInvite.findFirst({
       where: { id: invite.id, usedAt: null, expiresAt: { gt: new Date() } },
     });

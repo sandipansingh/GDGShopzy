@@ -68,8 +68,6 @@ export async function deleteCachePattern(pattern: string): Promise<void> {
     const client = getRedisClient();
     if (!client) return;
 
-    // buildCacheKey already prepends keyPrefix, so callers pass un-prefixed
-    // patterns like "products:list:*". We must NOT add the prefix again here.
     const fullPattern = `${keyPrefix}${pattern}`;
     const keys: string[] = [];
 
