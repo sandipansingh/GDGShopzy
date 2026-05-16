@@ -29,15 +29,15 @@ export async function checkEmailAvailability(email: string): Promise<void> {
   }
 }
 
+type PrismaTx = Omit<
+  typeof prisma,
+  "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+>;
+
 export async function createUserWithTokens(
   input: BaseRegistrationInput,
   role: UserRole,
-  additionalData?: (
-    tx: Omit<
-      typeof prisma,
-      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
-    >,
-  ) => Promise<void>,
+  additionalData?: (tx: PrismaTx, userId: string) => Promise<void>,
 ): Promise<RegistrationResult> {
   const passwordHash = await hashPassword(input.password);
 
@@ -47,7 +47,7 @@ export async function createUserWithTokens(
     });
 
     if (additionalData) {
-      await additionalData(tx);
+      await additionalData(tx, created.id);
     }
 
     return created;

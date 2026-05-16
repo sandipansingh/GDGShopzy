@@ -1,7 +1,5 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
-import { ZodSchema, ZodError } from "zod";
-import { ApiError } from "../utils/api-error";
-import { ErrorCode } from "../constants/error-codes";
+import { ZodSchema } from "zod";
 
 interface ValidateSchemas {
   body?: ZodSchema;
@@ -23,14 +21,6 @@ export function validate(schemas: ValidateSchemas): RequestHandler {
       }
       next();
     } catch (err) {
-      if (err instanceof ZodError) {
-        throw new ApiError({
-          statusCode: 400,
-          message: "Validation failed",
-          code: ErrorCode.VALIDATION_ERROR,
-          details: err.flatten().fieldErrors,
-        });
-      }
       next(err);
     }
   };

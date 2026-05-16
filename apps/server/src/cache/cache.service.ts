@@ -68,7 +68,7 @@ export async function deleteCachePattern(pattern: string): Promise<void> {
     const client = getRedisClient();
     if (!client) return;
 
-    const fullPattern = pattern.startsWith(keyPrefix) ? pattern : `${keyPrefix}${pattern}`;
+    const fullPattern = `${keyPrefix}${pattern}`;
     const keys: string[] = [];
 
     for await (const key of client.scanIterator({ MATCH: fullPattern, COUNT: 100 })) {
